@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Имитационное моделирование — интерактивный тест</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #d1d5db;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --amber: #d97706;
+    --amber-bg: #fef3c7;
+    --shadow: 0 10px 30px rgba(0,0,0,.08);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg, #eef2ff 0%, var(--bg) 45%, #f0fdf4 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  header {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  header h1 {
+    font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+    margin: 0 0 6px;
+    letter-spacing: -.02em;
+  }
+  header p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+  .progress-shell {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 18px 0 8px;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), #22c55e);
+    transition: width .35s ease;
+  }
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .88rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+  .badge {
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .8rem;
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: clamp(18px, 3vw, 30px);
+    border: 1px solid rgba(255,255,255,.7);
+  }
+
+  .q-title {
+    font-size: clamp(1.02rem, 1.8vw, 1.18rem);
+    font-weight: 700;
+    line-height: 1.45;
+    margin: 0 0 16px;
+  }
+  .q-title .qnum {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    padding: 2px 9px;
+    margin-right: 8px;
+    font-size: .88em;
+  }
+
+  .options { display: grid; gap: 10px; }
+  .option {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .1s;
+    user-select: none;
+    line-height: 1.4;
+    font-size: .97rem;
+  }
+  .option:hover:not(.disabled) { border-color: #93c5fd; background: #f8fbff; }
+  .option input { margin-top: 2px; accent-color: var(--primary); flex: 0 0 auto; }
+  .option.selected { border-color: var(--primary); background: #eff6ff; }
+  .option.disabled { cursor: default; opacity: .95; }
+
+  .option.correct {
+    border-color: var(--green);
+    background: var(--green-bg);
+  }
+  .option.incorrect {
+    border-color: var(--red);
+    background: var(--red-bg);
+  }
+  .option.correct .mark, .option.incorrect .mark {
+    margin-left: auto;
+    font-weight: 800;
+    flex: 0 0 auto;
+  }
+  .option.correct .mark { color: var(--green); }
+  .option.incorrect .mark { color: var(--red); }
+
+  /* Matching */
+  .match-grid { display: grid; gap: 12px; }
+  .match-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 210px;
+    gap: 12px;
+    align-items: center;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: #fff;
+  }
+  .match-row.correct { border-color: var(--green); background: var(--green-bg); }
+  .match-row.incorrect { border-color: var(--red); background: var(--red-bg); }
+  .match-label { font-size: .95rem; line-height: 1.4; }
+  .match-label b { color: var(--primary-dark); }
+  select {
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-size: .92rem;
+    color: var(--text);
+    outline: none;
+  }
+  select:focus { border-color: var(--primary); }
+  select:disabled { opacity: .95; }
+  .match-feedback {
+    grid-column: 1 / -1;
+    font-size: .85rem;
+    color: var(--red);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .match-feedback.ok { color: var(--green); }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  button {
+    font: inherit;
+    border: none;
+    border-radius: 12px;
+    padding: 11px 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .08s, background .15s, opacity .15s;
+  }
+  button:active { transform: translateY(1px); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-ghost { background: #eef2ff; color: #3730a3; }
+  .btn-ghost:hover { background: #e0e7ff; }
+
+  .feedback {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: .93rem;
+    line-height: 1.45;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.good { background: var(--green-bg); color: #14532d; border: 1px solid #86efac; }
+  .feedback.bad { background: var(--red-bg); color: #7f1d1d; border: 1px solid #fca5a5; }
+  .feedback.info { background: var(--amber-bg); color: #78350f; border: 1px solid #fcd34d; }
+  .feedback b { font-weight: 800; }
+
+  .result-hero {
+    text-align: center;
+    padding: 10px 0 6px;
+  }
+  .score-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    margin: 8px auto 16px;
+    background: conic-gradient(var(--green) var(--p, 0%), #e5e7eb 0);
+    position: relative;
+  }
+  .score-circle::before {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .score-circle span {
+    position: relative;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .result-hero h2 { margin: 0 0 6px; font-size: 1.35rem; }
+  .result-hero p { margin: 0; color: var(--muted); }
+
+  .breakdown {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  .stat {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat .n { font-size: 1.4rem; font-weight: 800; }
+  .stat .l { font-size: .8rem; color: var(--muted); }
+  .stat.good .n { color: var(--green); }
+  .stat.bad .n { color: var(--red); }
+
+  .review-list { margin-top: 20px; display: grid; gap: 8px; }
+  .review-item {
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    font-size: .9rem;
+  }
+  .review-item .idx { font-weight: 800; color: var(--muted); }
+  .review-item .status { font-weight: 800; font-size: .8rem; padding: 3px 8px; border-radius: 999px; }
+  .review-item.ok .status { background: var(--green-bg); color: var(--green); }
+  .review-item.no .status { background: var(--red-bg); color: var(--red); }
+
+  @media (max-width: 560px) {
+    .match-row { grid-template-columns: 1fr; }
+    .option { font-size: .93rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Имитационное моделирование</h1>
+    <p>Интерактивный тест • 40 вопросов • вопросы и варианты перемешиваются при каждом запуске</p>
+  </header>
+
+  <div class="progress-shell"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="meta-row">
+    <span id="progressText">Вопрос 1 из 40</span>
+    <span class="badge" id="typeBadge">Один ответ</span>
+  </div>
+
+  <main class="card" id="card">
+    <!-- Question content injected here -->
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+
+const RAW_QUESTIONS = [
+  // ---------- SINGLE CHOICE (20) ----------
+  {
+    id: 1, type: "single",
+    q: "Какие три метода моделирования поддерживает AnyLogic?",
+    options: [
+      "аналитическое, физическое, концептуальное",
+      "агрегативное, экспертное, вероятностное",
+      "статистическое, когнитивное, ситуационное",
+      "дискретно-событийное, агентное, системная динамика"
+    ],
+    correct: [3]
+  },
+  {
+    id: 2, type: "single",
+    q: "Что такое эмерджентность?",
+    options: [
+      "способность системы делиться на независимые части",
+      "наличие устойчивых связей между элементами",
+      "приспосабливаемость системы к воздействиям внешней среды",
+      "наличие у системы свойств целостности, не присущих составляющим её элементам"
+    ],
+    correct: [3]
+  },
+  {
+    id: 3, type: "single",
+    q: "Сколько элементов содержат сложные системы (классификация по числу элементов)?",
+    options: [
+      "10 – 10³",
+      "10⁴ – 10⁷",
+      "10³ – 10²⁰",
+      "10⁸ – 10³⁰"
+    ],
+    correct: [1]
+  },
+  {
+    id: 4, type: "single",
+    q: "Что такое структура системы?",
+    options: [
+      "простейшая неделимая часть системы",
+      "совокупность устойчивых отношений и связей (закономерных) между элементами",
+      "любые связи между элементами, в том числе малосущественные",
+      "объединение элементов, меньшее по масштабу, чем система"
+    ],
+    correct: [1]
+  },
+  {
+    id: 5, type: "single",
+    q: "Как называется единичное действие системы по обработке (преобразованию) входных данных?",
+    options: [
+      "работа (активность)",
+      "транзакт",
+      "процесс",
+      "событие"
+    ],
+    correct: [0]
+  },
+  {
+    id: 6, type: "single",
+    q: "Что имеет нулевую длительность и является мгновенным изменением элемента или состояния системы?",
+    options: [
+      "транзакт",
+      "процесс",
+      "событие",
+      "работа"
+    ],
+    correct: [2]
+  },
+  {
+    id: 7, type: "single",
+    q: "Что в имитационной модели называют транзактом?",
+    options: [
+      "мгновенное изменение состояния элемента системы",
+      "сообщение (заявку на обслуживание), поступающее извне на вход системы",
+      "логически связанный набор работ",
+      "величину, выбираемую произвольно"
+    ],
+    correct: [1]
+  },
+  {
+    id: 8, type: "single",
+    q: "Как называется оценка требуемой точности и адекватности имитационной модели?",
+    options: [
+      "верификация",
+      "трансляция",
+      "валидация",
+      "формализация"
+    ],
+    correct: [2]
+  },
+  {
+    id: 9, type: "single",
+    q: "К какой разновидности имитационного моделирования относится метод Монте-Карло?",
+    options: [
+      "ситуационное",
+      "когнитивное",
+      "агентное",
+      "статистическое (численное)"
+    ],
+    correct: [3]
+  },
+  {
+    id: 10, type: "single",
+    q: "Кто является автором парадигмы системной динамики?",
+    options: [
+      "Дж. фон Нейман",
+      "Р. Аксельрод",
+      "Джей Форрестер",
+      "Джеффри Гордон"
+    ],
+    correct: [2]
+  },
+  {
+    id: 11, type: "single",
+    q: "Кто и когда создал на IBM систему дискретно-событийного программирования GPSS?",
+    options: [
+      "Джей Форрестер, 1960 г.",
+      "Р. Аксельрод, 1960 г.",
+      "Джеффри Гордон, 1960 г.",
+      "Джеффри Гордон, 1990 г."
+    ],
+    correct: [2]
+  },
+  {
+    id: 12, type: "single",
+    q: "Что исследует агентное моделирование?",
+    options: [
+      "многократное воспроизведение процесса для расчёта статистических характеристик",
+      "как поведение децентрализованных агентов определяет поведение всей системы",
+      "агрегат с операторами переходов и выходов",
+      "диаграммы причинных связей и нелинейные обратные связи во времени"
+    ],
+    correct: [1]
+  },
+  {
+    id: 13, type: "single",
+    q: "Что в агентной модели называют средой?",
+    options: [
+      "пространство, в котором находятся агенты (имеет свои состояния и факторы)",
+      "множество входных сигналов системы",
+      "законы взаимодействия агентов и процедуры принятия решений",
+      "активный объект с автономным поведением"
+    ],
+    correct: [0]
+  },
+  {
+    id: 14, type: "single",
+    q: "Для чего предназначено когнитивное моделирование?",
+    options: [
+      "для анализа и принятия решений в плохо определённых ситуациях",
+      "для моделирования обслуживания заявок в СМО",
+      "для оценки надёжности технических систем",
+      "для вычисления интегралов методом статистических испытаний"
+    ],
+    correct: [0]
+  },
+  {
+    id: 15, type: "single",
+    q: "Какой ситуационный центр ориентирован на объекты класса «регион», «отрасль», «холдинг», «ведомство»?",
+    options: [
+      "тактический",
+      "стратегический",
+      "оперативный",
+      "результирующий"
+    ],
+    correct: [1]
+  },
+  {
+    id: 16, type: "single",
+    q: "Какое решение принимается сразу после этапа «Определение границ»?",
+    options: [
+      "проводить ли оценку адекватности",
+      "переходить ли к реализации результатов",
+      "использовать ли тактическое планирование",
+      "применять ли имитационное моделирование"
+    ],
+    correct: [3]
+  },
+  {
+    id: 17, type: "single",
+    q: "Что является результатом этапа «Формулировка проблемы»?",
+    options: [
+      "программа-имитатор",
+      "технический проект для моделирования",
+      "план машинного эксперимента",
+      "документированное содержательное описание объекта моделирования"
+    ],
+    correct: [3]
+  },
+  {
+    id: 18, type: "single",
+    q: "Что такое целевая функция?",
+    options: [
+      "составные части, образующие систему",
+      "величины, выбираемые произвольно",
+      "точное отображение целей (задач) системы и правил оценки их выполнения",
+      "установленные пределы изменения значений переменных"
+    ],
+    correct: [2]
+  },
+  {
+    id: 19, type: "single",
+    q: "Какая стадия разработки компьютерных моделей сложных объектов следует за стадией проектирования и разработки ПО?",
+    options: [
+      "стадия внедрения",
+      "разработка концепции АС",
+      "период сопровождения",
+      "предпроектная стадия"
+    ],
+    correct: [0]
+  },
+  {
+    id: 20, type: "single",
+    q: "Как называется модель на неформализованном уровне представления?",
+    options: [
+      "концептуальная модель",
+      "имитационная модель",
+      "формальная модель",
+      "физическая модель"
+    ],
+    correct: [0]
+  },
+
+  // ---------- MATCHING (8) ----------
+  {
+    id: 21, type: "match",
+    q: "Установите соответствие между понятием и его определением.",
+    left: [
+      { key: "1", text: "Объект" },
+      { key: "2", text: "Класс" },
+      { key: "3", text: "Отношение" },
+      { key: "4", text: "Подсистема" },
+      { key: "5", text: "Элемент" }
+    ],
+    right: [
+      { key: "А", text: "компонент системы — объединение элементов, меньший по масштабу, чем система" },
+      { key: "Б", text: "простейшая неделимая часть системы" },
+      { key: "В", text: "определяет взаимное положение объектов и связи между ними" },
+      { key: "Г", text: "группа объектов, родственных по характеристикам и поведению" },
+      { key: "Д", text: "сущность в виртуальном пространстве с определённым состоянием, поведением и значениями свойств" }
+    ],
+    correctMap: { "1": "Д", "2": "Г", "3": "В", "4": "А", "5": "Б" }
+  },
+  {
+    id: 22, type: "match",
+    q: "Установите соответствие между классом систем и числом элементов.",
+    left: [
+      { key: "1", text: "Малые" },
+      { key: "2", text: "Сложные" },
+      { key: "3", text: "Ультрасложные" },
+      { key: "4", text: "Суперсистемы" }
+    ],
+    right: [
+      { key: "А", text: "10⁴ – 10⁷" },
+      { key: "Б", text: "10⁸ – 10³⁰" },
+      { key: "В", text: "10³⁰ – 10²⁰⁰" },
+      { key: "Г", text: "10 – 10³" }
+    ],
+    correctMap: { "1": "Г", "2": "А", "3": "Б", "4": "В" }
+  },
+  {
+    id: 23, type: "match",
+    q: "Установите соответствие между разновидностью имитационного моделирования и её характеристикой.",
+    left: [
+      { key: "1", text: "Дискретно-событийное" },
+      { key: "2", text: "Системная динамика" },
+      { key: "3", text: "Агентное" },
+      { key: "4", text: "Когнитивное" },
+      { key: "5", text: "Ситуационное" }
+    ],
+    right: [
+      { key: "А", text: "диаграммы причинных связей, нелинейные обратные связи (Дж. Форрестер)" },
+      { key: "Б", text: "анализ и принятие решений в плохо определённых ситуациях (Р. Аксельрод)" },
+      { key: "В", text: "«проигрывание» решений по управлению ситуацией, ситуационные центры" },
+      { key: "Г", text: "децентрализованные агенты, среда и правила взаимодействия" },
+      { key: "Д", text: "система GPSS, созданная Дж. Гордоном в 1960 г." }
+    ],
+    correctMap: { "1": "Д", "2": "А", "3": "Г", "4": "Б", "5": "В" }
+  },
+  {
+    id: 24, type: "match",
+    q: "Установите соответствие между программным средством и его характеристикой.",
+    left: [
+      { key: "1", text: "AnyLogic" },
+      { key: "2", text: "Arena" },
+      { key: "3", text: "Plant Simulation" },
+      { key: "4", text: "RePast" },
+      { key: "5", text: "SimBioSys" }
+    ],
+    right: [
+      { key: "А", text: "C++; агентное эволюционное моделирование; Торонто" },
+      { key: "Б", text: "Java; поддержка агентного моделирования; Чикаго" },
+      { key: "В", text: "российская разработка («ЭксДжей Текнолоджис»); агентное, дискретно-событийное моделирование и системная динамика" },
+      { key: "Г", text: "разработчик — Siemens PLM Software; оптимизация материальных потоков и логистики" },
+      { key: "Д", text: "разработчик — Systems Modeling Corporation" }
+    ],
+    correctMap: { "1": "В", "2": "Д", "3": "Г", "4": "Б", "5": "А" }
+  },
+  {
+    id: 25, type: "match",
+    q: "Установите соответствие между этапом разработки модели и его содержанием.",
+    left: [
+      { key: "1", text: "Формулировка проблемы" },
+      { key: "2", text: "Определение границ" },
+      { key: "3", text: "Трансляция модели" },
+      { key: "4", text: "Оценка адекватности" },
+      { key: "5", text: "Экспериментирование" }
+    ],
+    right: [
+      { key: "А", text: "прогон программы модели и получение выходных данных" },
+      { key: "Б", text: "выделение системы из среды, определение входных параметров и выходных характеристик" },
+      { key: "В", text: "описание проблемы, определение целей, иерархия целей и подзадач" },
+      { key: "Г", text: "верификация и валидация" },
+      { key: "Д", text: "перевод модели на язык программирования, отладка" }
+    ],
+    correctMap: { "1": "В", "2": "Б", "3": "Д", "4": "Г", "5": "А" }
+  },
+  {
+    id: 26, type: "match",
+    q: "Установите соответствие между понятием этапа «Определение границ» и его описанием.",
+    left: [
+      { key: "1", text: "Параметры" },
+      { key: "2", text: "Компоненты системы" },
+      { key: "3", text: "Функциональные зависимости" },
+      { key: "4", text: "Ограничения" },
+      { key: "5", text: "Целевая функция" }
+    ],
+    right: [
+      { key: "А", text: "точное отображение целей системы и правил оценки их выполнения" },
+      { key: "Б", text: "установленные пределы изменения значений переменных" },
+      { key: "В", text: "составные части, образующие систему (элементы или подсистемы)" },
+      { key: "Г", text: "описывают поведение переменных и параметров в пределах компоненты; бывают детерминистскими или стохастическими" },
+      { key: "Д", text: "величины, выбираемые произвольно" }
+    ],
+    correctMap: { "1": "Д", "2": "В", "3": "Г", "4": "Б", "5": "А" }
+  },
+  {
+    id: 27, type: "match",
+    q: "Установите соответствие между целью эксперимента по моделированию и её описанием.",
+    left: [
+      { key: "1", text: "Прогноз" },
+      { key: "2", text: "Сравнение альтернатив" },
+      { key: "3", text: "Анализ чувствительности" },
+      { key: "4", text: "Оптимизация" },
+      { key: "5", text: "Демонстрация" }
+    ],
+    right: [
+      { key: "А", text: "поиск сочетания величин, дающего наилучший отклик системы" },
+      { key: "Б", text: "показ возможностей модели и имитационных исследований" },
+      { key: "В", text: "оценка поведения системы при предполагаемом сочетании рабочих условий" },
+      { key: "Г", text: "сравнение конкурирующих систем или рабочих принципов" },
+      { key: "Д", text: "выявление факторов, сильнее всего влияющих на поведение системы" }
+    ],
+    correctMap: { "1": "В", "2": "Г", "3": "Д", "4": "А", "5": "Б" }
+  },
+  {
+    id: 28, type: "match",
+    q: "Установите соответствие между видом моделирования и его описанием.",
+    left: [
+      { key: "1", text: "Концептуальное" },
+      { key: "2", text: "Физическое" },
+      { key: "3", text: "Аналитическое" },
+      { key: "4", text: "Имитационное" },
+      { key: "5", text: "Численное" }
+    ],
+    right: [
+      { key: "А", text: "дискретные аналоги интегралов, дифференциальных уравнений, итерационные формулы" },
+      { key: "Б", text: "описание информации об объекте формализованными и неформализованными языками" },
+      { key: "В", text: "разработка натурных, аналоговых, масштабных моделей и исследование на них объекта" },
+      { key: "Г", text: "модель в виде формул, неравенств, линейных и нелинейных уравнений" },
+      { key: "Д", text: "разработка модели-программы для компьютера и проведение экспериментов с ней" }
+    ],
+    correctMap: { "1": "Б", "2": "В", "3": "Г", "4": "Д", "5": "А" }
+  },
+
+  // ---------- MULTIPLE CHOICE (12) ----------
+  {
+    id: 29, type: "multi",
+    q: "Какие свойства должен иметь объект, считающийся системой?",
+    options: [
+      "целостность",
+      "делимость",
+      "случайность",
+      "эмерджентность",
+      "анонимность",
+      "организация"
+    ],
+    correct: [0, 1, 3, 5]
+  },
+  {
+    id: 30, type: "multi",
+    q: "Что относится к особенностям больших систем?",
+    options: [
+      "большое количество элементов",
+      "иерархичность структуры управления",
+      "отсутствие человека в контуре управления",
+      "взаимосвязь и взаимодействие элементов",
+      "полная определённость условий"
+    ],
+    correct: [0, 1, 3]
+  },
+  {
+    id: 31, type: "multi",
+    q: "Какие признаки характерны для сложной системы?",
+    options: [
+      "невозможность рассматривать элемент отдельно от других и от среды",
+      "неопределённость — много возможных состояний",
+      "единственный путь достижения конечной цели",
+      "адаптивность",
+      "неопределённость достоверности исходной информации"
+    ],
+    correct: [0, 1, 3, 4]
+  },
+  {
+    id: 32, type: "multi",
+    q: "Какие характеристики относятся к процессу?",
+    options: [
+      "длительность",
+      "нулевая длительность",
+      "потребляемые ресурсы",
+      "условия запуска и остановки",
+      "состояние (активен или ожидание)"
+    ],
+    correct: [0, 1, 3, 4]
+  },
+  {
+    id: 33, type: "multi",
+    q: "Какие характеристики относятся к событию?",
+    options: [
+      "условия (закон) возникновения",
+      "тип, определяющий порядок обработки",
+      "потребляемые ресурсы",
+      "нулевая длительность"
+    ],
+    correct: [0, 1, 3]
+  },
+  {
+    id: 34, type: "multi",
+    q: "Что относится к видам имитационного эксперимента?",
+    options: [
+      "исследование влияния факторов на выходные характеристики",
+      "нахождение аналитической зависимости между выходами и факторами",
+      "поиск оптимальных значений параметров системы",
+      "сравнение альтернатив для принятия решений",
+      "замена имитационной модели физической"
+    ],
+    correct: [0, 1, 2, 3]
+  },
+  {
+    id: 35, type: "multi",
+    q: "Что позволяют делать диалоговые имитационные модели?",
+    options: [
+      "управлять ходом моделирования",
+      "приостанавливать сеанс моделирования",
+      "изменять значения параметров модели",
+      "работать только в режиме «запуск — останов» без вмешательства",
+      "корректировать перечень регистрируемых данных"
+    ],
+    correct: [0, 1, 2, 4]
+  },
+  {
+    id: 36, type: "multi",
+    q: "Что может выступать агентом в агентной модели?",
+    options: [
+      "потребители и работники",
+      "станки и вагоны",
+      "проекты, идеи, инвестиции",
+      "компании и страны",
+      "только живые существа"
+    ],
+    correct: [0, 1, 2, 3]
+  },
+  {
+    id: 37, type: "multi",
+    q: "Что позволяет агентное моделирование?",
+    options: [
+      "исследовать задачи коллективного взаимодействия",
+      "решать задачи прогнозирования",
+      "исследовать процессы самоорганизации",
+      "находить решение любой задачи в замкнутой аналитической форме",
+      "описывать сложные системы"
+    ],
+    correct: [0, 1, 2, 4]
+  },
+  {
+    id: 38, type: "multi",
+    q: "Какие из перечисленных средств применяют для агентного моделирования?",
+    options: [
+      "RePast",
+      "GPSS",
+      "NetLogo",
+      "Stella",
+      "Swarm"
+    ],
+    correct: [0, 2, 4]
+  },
+  {
+    id: 39, type: "multi",
+    q: "Что включает ситуационное моделирование?",
+    options: [
+      "построение модели реальной ситуации",
+      "прогнозирование направлений развития ситуации",
+      "конструирование натурных масштабных моделей",
+      "«проигрывание» решений по управлению ситуацией"
+    ],
+    correct: [0, 1, 3]
+  },
+  {
+    id: 40, type: "multi",
+    q: "На какие объекты ориентирован оперативный ситуационный центр?",
+    options: [
+      "предприятие (компания)",
+      "регион",
+      "проект",
+      "отрасль",
+      "процесс"
+    ],
+    correct: [0, 2, 4]
+  }
+];
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function labelForIndex(i) {
+  return String.fromCharCode(1040 + i); // А, Б, В, ...
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+
+let session = null;
+
+function buildSession() {
+  // Shuffle question order
+  const qOrder = shuffle(RAW_QUESTIONS.map(q => q.id));
+
+  // Prepare per-question shuffled data
+  const byId = {};
+  RAW_QUESTIONS.forEach(q => { byId[q.id] = q; });
+
+  const prepared = qOrder.map(id => {
+    const src = byId[id];
+    if (src.type === "single") {
+      // Shuffle options, keep track of correct original index
+      const indexed = src.options.map((text, i) => ({ text, original: i }));
+      const shuffled = shuffle(indexed);
+      const correctOriginal = new Set(src.correct);
+      return {
+        id: src.id,
+        type: src.type,
+        q: src.q,
+        options: shuffled.map(x => x.text),
+        correct: shuffled.map((x, i) => correctOriginal.has(x.original) ? i : -1).filter(i => i >= 0)
+      };
+    }
+    if (src.type === "multi") {
+      const indexed = src.options.map((text, i) => ({ text, original: i }));
+      const shuffled = shuffle(indexed);
+      const correctOriginal = new Set(src.correct);
+      return {
+        id: src.id,
+        type: src.type,
+        q: src.q,
+        options: shuffled.map(x => x.text),
+        correct: shuffled.map((x, i) => correctOriginal.has(x.original) ? i : -1).filter(i => i >= 0)
+      };
+    }
+    // match: shuffle right-side list only (left order fixed)
+    return {
+      id: src.id,
+      type: src.type,
+      q: src.q,
+      left: src.left.map(x => ({ ...x })),
+      right: shuffle(src.right.map(x => ({ ...x }))),
+      correctMap: { ...src.correctMap }
+    };
+  });
+
+  return {
+    questions: prepared,
+    current: 0,
+    answers: new Array(prepared.length).fill(null), // store answer state per question
+    results: new Array(prepared.length).fill(null), // 'ok' | 'no'
+    finished: false
+  };
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+
+const card = document.getElementById("card");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
+const typeBadge = document.getElementById("typeBadge");
+
+function updateProgress() {
+  const total = session.questions.length;
+  const idx = session.finished ? total : session.current;
+  const pct = Math.round((idx / total) * 100);
+  progressBar.style.width = pct + "%";
+  if (session.finished) {
+    progressText.textContent = `Тест завершён • ${total} вопросов`;
+  } else {
+    progressText.textContent = `Вопрос ${session.current + 1} из ${total}`;
+  }
+}
+
+function typeLabel(type) {
+  if (type === "single") return "Один ответ";
+  if (type === "multi") return "Несколько ответов";
+  return "Соответствие";
+}
+
+function renderQuestion() {
+  updateProgress();
+  const q = session.questions[session.current];
+  const state = session.answers[session.current];
+  const answered = state !== null && state.answered === true;
+
+  typeBadge.textContent = typeLabel(q.type);
+
+  if (q.type === "single") {
+    renderSingle(q, state, answered);
+  } else if (q.type === "multi") {
+    renderMulti(q, state, answered);
+  } else {
+    renderMatch(q, state, answered);
+  }
+}
+
+/* ---------- SINGLE ---------- */
+
+function renderSingle(q, state, answered) {
+  const selected = state ? state.selected : null;
+
+  const optionsHtml = q.options.map((opt, i) => {
+    let cls = "option";
+    if (answered) {
+      cls += " disabled";
+      if (q.correct.includes(i)) cls += " correct";
+      else if (selected === i) cls += " incorrect";
+    } else if (selected === i) {
+      cls += " selected";
+    }
+    const mark = answered
+      ? (q.correct.includes(i) ? '<span class="mark">✓</span>'
+        : (selected === i ? '<span class="mark">✗</span>' : ''))
+      : '';
+    return `<label class="${cls}" data-index="${i}">
+      <input type="radio" name="single" value="${i}" ${selected === i ? "checked" : ""} ${answered ? "disabled" : ""}>
+      <span>${labelForIndex(i)}) ${escapeHtml(opt)}</span>
+      ${mark}
+    </label>`;
+  }).join("");
+
+  const feedback = answered ? buildSingleFeedback(q, selected) : "";
+
+  card.innerHTML = `
+    <h2 class="q-title"><span class="qnum">${session.current + 1}</span>${escapeHtml(q.q)}</h2>
+    <div class="options" id="options">${optionsHtml}</div>
+    ${feedback}
+    <div class="actions">
+      ${answered
+        ? `<button class="btn-primary" id="nextBtn">${session.current === session.questions.length - 1 ? "Показать результат" : "Следующий вопрос"}</button>`
+        : `<button class="btn-primary" id="checkBtn" disabled>Проверить</button>`}
+    </div>
+  `;
+
+  // interactions
+  if (!answered) {
+    const checkBtn = document.getElementById("checkBtn");
+    card.querySelectorAll('input[name="single"]').forEach(inp => {
+      inp.addEventListener("change", () => {
+        card.querySelectorAll(".option").forEach(el => el.classList.remove("selected"));
+        inp.closest(".option").classList.add("selected");
+        checkBtn.disabled = false;
+      });
+    });
+    checkBtn.addEventListener("click", () => {
+      const chosen = card.querySelector('input[name="single"]:checked');
+      if (!chosen) return;
+      const idx = Number(chosen.value);
+      const ok = q.correct.includes(idx);
+      session.answers[session.current] = { answered: true, selected: idx };
+      session.results[session.current] = ok ? "ok" : "no";
+      renderQuestion();
+      scrollCardIntoView();
+    });
+  } else {
+    document.getElementById("nextBtn").addEventListener("click", goNext);
+  }
+}
+
+function buildSingleFeedback(q, selected) {
+  const ok = q.correct.includes(selected);
+  if (ok) {
+    return `<div class="feedback show good"><b>Верно!</b> Правильный ответ: ${q.correct.map(i => labelForIndex(i)).join(", ")}.</div>`;
+  }
+  return `<div class="feedback show bad"><b>Неверно.</b> Вы выбрали: ${labelForIndex(selected)}. Правильный ответ: ${q.correct.map(i => labelForIndex(i)).join(", ")} — ${escapeHtml(q.options[q.correct[0]])}.</div>`;
+}
+
+/* ---------- MULTI ---------- */
+
+function renderMulti(q, state, answered) {
+  const selected = state ? new Set(state.selected) : new Set();
+
+  const optionsHtml = q.options.map((opt, i) => {
+    let cls = "option";
+    if (answered) {
+      cls += " disabled";
+      if (q.correct.includes(i)) cls += " correct";
+      else if (selected.has(i)) cls += " incorrect";
+    } else if (selected.has(i)) {
+      cls += " selected";
+    }
+    const mark = answered
+      ? (q.correct.includes(i) ? '<span class="mark">✓</span>'
+        : (selected.has(i) ? '<span class="mark">✗</span>' : ''))
+      : '';
+    return `<label class="${cls}" data-index="${i}">
+      <input type="checkbox" name="multi" value="${i}" ${selected.has(i) ? "checked" : ""} ${answered ? "disabled" : ""}>
+      <span>${labelForIndex(i)}) ${escapeHtml(opt)}</span>
+      ${mark}
+    </label>`;
+  }).join("");
+
+  const feedback = answered ? buildMultiFeedback(q, selected) : "";
+
+  card.innerHTML = `
+    <h2 class="q-title"><span class="qnum">${session.current + 1}</span>${escapeHtml(q.q)}</h2>
+    <div class="options" id="options">${optionsHtml}</div>
+    ${feedback}
+    <div class="actions">
+      ${answered
+        ? `<button class="btn-primary" id="nextBtn">${session.current === session.questions.length - 1 ? "Показать результат" : "Следующий вопрос"}</button>`
+        : `<button class="btn-primary" id="checkBtn" disabled>Проверить</button>`}
+    </div>
+  `;
+
+  if (!answered) {
+    const checkBtn = document.getElementById("checkBtn");
+    card.querySelectorAll('input[name="multi"]').forEach(inp => {
+      inp.addEventListener("change", () => {
+        inp.closest(".option").classList.toggle("selected", inp.checked);
+        checkBtn.disabled = !card.querySelector('input[name="multi"]:checked');
+      });
+    });
+    checkBtn.addEventListener("click", () => {
+      const chosen = [...card.querySelectorAll('input[name="multi"]:checked')].map(x => Number(x.value));
+      if (!chosen.length) return;
+      const chosenSet = new Set(chosen);
+      const correctSet = new Set(q.correct);
+      const ok = chosenSet.size === correctSet.size && [...chosenSet].every(x => correctSet.has(x));
+      session.answers[session.current] = { answered: true, selected: chosen };
+      session.results[session.current] = ok ? "ok" : "no";
+      renderQuestion();
+      scrollCardIntoView();
+    });
+  } else {
+    document.getElementById("nextBtn").addEventListener("click", goNext);
+  }
+}
+
+function buildMultiFeedback(q, selectedSet) {
+  const chosen = [...selectedSet].sort((a, b) => a - b);
+  const correct = q.correct.slice().sort((a, b) => a - b);
+  const ok = chosen.length === correct.length && chosen.every((x, i) => x === correct[i]);
+  const correctStr = correct.map(i => `${labelForIndex(i)}) ${escapeHtml(q.options[i])}`).join("; ");
+  if (ok) {
+    return `<div class="feedback show good"><b>Верно!</b> Правильные ответы: ${correct.map(i => labelForIndex(i)).join(", ")}.</div>`;
+  }
+  return `<div class="feedback show bad"><b>Неверно.</b> Правильные ответы: ${correct.map(i => labelForIndex(i)).join(", ")}.<br><span style="font-weight:600">${correctStr}</span></div>`;
+}
+
+/* ---------- MATCH ---------- */
+
+function renderMatch(q, state, answered) {
+  const selectedMap = state ? state.selected : {};
+
+  const rowsHtml = q.left.map(leftItem => {
+    const chosen = selectedMap[leftItem.key] || "";
+    let rowCls = "match-row";
+    let feedback = "";
+    if (answered) {
+      const correctKey = q.correctMap[leftItem.key];
+      const ok = chosen === correctKey;
+      rowCls += ok ? " correct" : " incorrect";
+      const correctText = q.right.find(r => r.key === correctKey)?.text || "";
+      feedback = ok
+        ? `<div class="match-feedback ok">✓ Верно: ${correctKey}</div>`
+        : `<div class="match-feedback">✗ Выбрано: ${chosen || "—"}; правильно: ${correctKey}) ${escapeHtml(correctText)}</div>`;
+    }
+    const optionsHtml = q.right.map(r =>
+      `<option value="${r.key}" ${chosen === r.key ? "selected" : ""}>${r.key}) ${escapeHtml(r.text)}</option>`
+    ).join("");
+    return `
+      <div class="${rowCls}" data-left="${leftItem.key}">
+        <div class="match-label"><b>${leftItem.key}.</b> ${escapeHtml(leftItem.text)}</div>
+        <select ${answered ? "disabled" : ""} data-left="${leftItem.key}">
+          <option value="">— выберите —</option>
+          ${optionsHtml}
+        </select>
+        ${feedback}
+      </div>
+    `;
+  }).join("");
+
+  let feedback = "";
+  if (answered) {
+    const allOk = q.left.every(l => selectedMap[l.key] === q.correctMap[l.key]);
+    feedback = allOk
+      ? `<div class="feedback show good"><b>Верно!</b> Все соответствия установлены правильно.</div>`
+      : `<div class="feedback show bad"><b>Есть ошибки.</b> Правильные соответствия показаны выше.</div>`;
+  }
+
+  card.innerHTML = `
+    <h2 class="q-title"><span class="qnum">${session.current + 1}</span>${escapeHtml(q.q)}</h2>
+    <div class="match-grid">${rowsHtml}</div>
+    ${feedback}
+    <div class="actions">
+      ${answered
+        ? `<button class="btn-primary" id="nextBtn">${session.current === session.questions.length - 1 ? "Показать результат" : "Следующий вопрос"}</button>`
+        : `<button class="btn-primary" id="checkBtn">Проверить</button>`}
+    </div>
+  `;
+
+  if (!answered) {
+    const checkBtn = document.getElementById("checkBtn");
+    const selects = [...card.querySelectorAll("select[data-left]")];
+    const refresh = () => {
+      checkBtn.disabled = selects.some(s => !s.value);
+    };
+    selects.forEach(s => {
+      s.addEventListener("change", refresh);
+    });
+    refresh();
+
+    checkBtn.addEventListener("click", () => {
+      const map = {};
+      selects.forEach(s => { map[s.dataset.left] = s.value; });
+      const allFilled = q.left.every(l => map[l.key]);
+      if (!allFilled) return;
+      const ok = q.left.every(l => map[l.key] === q.correctMap[l.key]);
+      session.answers[session.current] = { answered: true, selected: map };
+      session.results[session.current] = ok ? "ok" : "no";
+      renderQuestion();
+      scrollCardIntoView();
+    });
+  } else {
+    document.getElementById("nextBtn").addEventListener("click", goNext);
+  }
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+function goNext() {
+  if (session.current === session.questions.length - 1) {
+    session.finished = true;
+    renderResult();
+    scrollCardIntoView();
+    return;
+  }
+  session.current += 1;
+  renderQuestion();
+  scrollCardIntoView();
+}
+
+function scrollCardIntoView() {
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ============================================================
+   RESULT
+   ============================================================ */
+
+function renderResult() {
+  updateProgress();
+  typeBadge.textContent = "Результат";
+
+  const total = session.questions.length;
+  const correctCount = session.results.filter(r => r === "ok").length;
+  const pct = Math.round((correctCount / total) * 100);
+
+  const byType = { single: { ok: 0, total: 0 }, multi: { ok: 0, total: 0 }, match: { ok: 0, total: 0 } };
+  session.questions.forEach((q, i) => {
+    byType[q.type].total += 1;
+    if (session.results[i] === "ok") byType[q.type].ok += 1;
+  });
+
+  const reviewHtml = session.questions.map((q, i) => {
+    const status = session.results[i];
+    return `<div class="review-item ${status === "ok" ? "ok" : "no"}">
+      <span class="idx">${i + 1}</span>
+      <span>${escapeHtml(q.q)}</span>
+      <span class="status">${status === "ok" ? "верно" : "ошибка"}</span>
+    </div>`;
+  }).join("");
+
+  card.innerHTML = `
+    <div class="result-hero">
+      <div class="score-circle" style="--p:${pct}%"><span>${correctCount} / ${total}</span></div>
+      <h2>${pct >= 90 ? "Отлично!" : pct >= 70 ? "Хороший результат" : pct >= 50 ? "Неплохо" : "Нужно повторить материал"}</h2>
+      <p>Правильных ответов: <b>${correctCount}</b> из <b>${total}</b> (${pct}%)</p>
+    </div>
+
+    <div class="breakdown">
+      <div class="stat good"><div class="n">${byType.single.ok}/${byType.single.total}</div><div class="l">Один ответ</div></div>
+      <div class="stat good"><div class="n">${byType.multi.ok}/${byType.multi.total}</div><div class="l">Несколько ответов</div></div>
+      <div class="stat good"><div class="n">${byType.match.ok}/${byType.match.total}</div><div class="l">Соответствие</div></div>
+    </div>
+
+    <div class="review-list">${reviewHtml}</div>
+
+    <div class="actions">
+      <button class="btn-primary" id="restartBtn">Пройти заново</button>
+    </div>
+  `;
+
+  document.getElementById("restartBtn").addEventListener("click", () => {
+    start();
+  });
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/* ============================================================
+   START
+   ============================================================ */
+
+function start() {
+  session = buildSession();
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+start();
+</script>
+</body>
+</html>
